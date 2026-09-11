@@ -1,0 +1,24 @@
+docker run --name urlshortener-redis -p 6379:6379 -d redis
+
+
+
+
+docker run
+   ↓
+Create and start a container
+
+--name urlshortener-redis
+   ↓
+Give our Redis container a name
+
+-p 6379:6379
+   ↓
+Your Windows port 6379 → Redis container port 6379
+
+-d
+   ↓
+Run in background
+
+redis
+   ↓
+Use the Redis image

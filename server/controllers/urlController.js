@@ -1,5 +1,6 @@
 const generateCode = require("../utils/generateCode");
 const urlModel = require("../models/urlModel");
+const { redisClient } = require("../config/redis");
 
 const isValidHttpUrl = (value) => {
   if (!/^https?:\/\//i.test(value.trim())) return false;
@@ -87,10 +88,25 @@ const redirectUrl = async (req, res) => {
     const { code } = req.params;
     const shortCode = decodeURIComponent(code).trim();
 
+    // 1. Check Redis first
+    const cachedUrl = await redisClient.get(`url:${shortCode}`);
+
+    if (cachedUrl) {
+      console.log("Redis Cache HIT");
+
+      return res.redirect(cachedUrl);
+    }
+
+    console.log("Redis Cache MISS");
+
+    // 2. Redis doesn't have the URL
+    // So check MySQL
     const result = await urlModel.getUrlByCode(shortCode);
 
     if (result.length === 0) {
-      return res.status(404).json({ message: "URL not found" });
+      return res.status(404).json({
+        message: "URL not found",
+      });
     }
 
     const url = result[0];
@@ -101,11 +117,26 @@ const redirectUrl = async (req, res) => {
       });
     }
 
+    // 3. Store URL in Redis
+    // Cache for 1 hour
+    await redisClient.set(
+      `url:${shortCode}`,
+      url.original_url,
+      {
+        EX: 3600,
+      }
+    );
+
+    // 4. Increment clicks
     await urlModel.incrementClicks(url.id);
 
+    // 5. Redirect
     return res.redirect(url.original_url);
+
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: err.message,
+    });
   }
 };
 
