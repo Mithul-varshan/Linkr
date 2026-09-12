@@ -6,10 +6,14 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    await connectRedis();
+    try {
+      await connectRedis();
+    } catch (redisErr) {
+      console.warn("⚠️  [Server] Redis not available, running in DB fallback mode:", redisErr.message);
+    }
 
     app.listen(PORT, () => {
-      console.log(`Server running on Port ${PORT}`);
+      console.log(`[Main Server / Gateway] Server running on Port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -17,3 +21,4 @@ const startServer = async () => {
 };
 
 startServer();
+
