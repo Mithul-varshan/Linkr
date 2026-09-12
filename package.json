@@ -5,10 +5,14 @@
   "private": true,
   "workspaces": [
     "server",
-    "client"
+    "client",
+    "services/*"
   ],
   "scripts": {
-    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "dev": "concurrently -n \"AUTH,SERVER,CLIENT\" -c \"magenta.bold,blue.bold,green.bold\" \"npm run dev --workspace=auth-service\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "dev:auth": "npm run dev --workspace=auth-service",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
     "build": "npm run build --workspace=client && npm run build --workspace=server",
     "start": "cd server && npm start"
   },
@@ -20,5 +24,8 @@
   "license": "ISC",
   "dependencies": {
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

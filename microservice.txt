@@ -1,0 +1,41 @@
+STAGE 1 :
+
+React
+  ↓
+Main Server :5000
+  │
+  ├──────────────→ Auth Service :5002
+  │                      ↓
+  │                    MySQL
+  │
+  └──→ URL logic
+          ↓
+       Redis + MySQL
+
+What we're actually learning in Stage 1
+
+Don't think of this as just "moving files."
+
+You're learning these concepts:
+
+Concept	What you'll learn
+Microservice	Auth has its own process
+Service isolation	Auth owns user operations
+Reverse proxy	Gateway forwards requests
+JWT	Services can trust authenticated requests
+Service-to-service communication	Gateway → Auth
+Database ownership	Auth owns users
+Backward compatibility	Frontend doesn't change
+Environment configuration	Each service has its own .env
+Independent ports	5000 vs 5002
+
+And later we'll build on this with:
+
+Stage 1 → Auth Service
+Stage 2 → URL Service
+Stage 3 → Analytics Service
+Stage 4 → Proper API Gateway
+Stage 5 → Docker Compose
+Stage 6 → Redis Rate Limiting
+Stage 7 → Kafka
+Stage 8 → Resilience / retries / circuit breakers
