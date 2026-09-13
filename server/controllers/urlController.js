@@ -89,15 +89,21 @@ const redirectUrl = async (req, res) => {
     const shortCode = decodeURIComponent(code).trim();
 
     // 1. Check Redis first
-    const cachedUrl = await redisClient.get(`url:${shortCode}`);
+    let cachedUrl = null;
+    if (redisClient && redisClient.isOpen) {
+      try {
+        cachedUrl = await redisClient.get(`url:${shortCode}`);
+      } catch (err) {
+        console.warn("Redis GET error:", err.message);
+      }
+    }
 
     if (cachedUrl) {
       console.log("Redis Cache HIT");
-
       return res.redirect(cachedUrl);
     }
 
-    console.log("Redis Cache MISS");
+    console.log("Redis Cache MISS (or cache offline)");
 
     // 2. Redis doesn't have the URL
     // So check MySQL
@@ -119,13 +125,19 @@ const redirectUrl = async (req, res) => {
 
     // 3. Store URL in Redis
     // Cache for 1 hour
-    await redisClient.set(
-      `url:${shortCode}`,
-      url.original_url,
-      {
-        EX: 3600,
+    if (redisClient && redisClient.isOpen) {
+      try {
+        await redisClient.set(
+          `url:${shortCode}`,
+          url.original_url,
+          {
+            EX: 3600,
+          }
+        );
+      } catch (err) {
+        console.warn("Redis SET error:", err.message);
       }
-    );
+    }
 
     // 4. Increment clicks
     await urlModel.incrementClicks(url.id);

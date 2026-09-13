@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const userModel = require("../models/userModel");
 
 const protect = async (req, res, next) => {
   try {
@@ -13,12 +12,11 @@ const protect = async (req, res, next) => {
     const secret = process.env.JWT_SECRET || "dev_jwt_secret_change_me";
     const decoded = jwt.verify(token, secret);
 
-    const user = await userModel.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ message: "Not authorized, user not found" });
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ message: "Not authorized, invalid token payload" });
     }
 
-    req.user = user;
+    req.user = { id: decoded.id };
     next();
   } catch (err) {
     return res.status(401).json({ message: "Not authorized, invalid token" });
@@ -37,16 +35,15 @@ const optionalProtect = async (req, res, next) => {
     const secret = process.env.JWT_SECRET || "dev_jwt_secret_change_me";
     const decoded = jwt.verify(token, secret);
 
-    const user = await userModel.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ message: "Not authorized, user not found" });
+    if (decoded && decoded.id) {
+      req.user = { id: decoded.id };
     }
 
-    req.user = user;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Not authorized, invalid token" });
+    // For optional auth, if invalid token is sent, treat as unauthenticated
+    return next();
   }
 };
 
-module.exports = { protect, optionalProtect };
+module.exports = { protect, optionalProtect };
