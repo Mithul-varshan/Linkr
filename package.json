@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A modern URL shortener with custom domains",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "workspaces": [
     "server",
     "client",
