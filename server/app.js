@@ -1,11 +1,8 @@
 const express = require("express");
 const cors = require("cors");
-const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 require("dotenv").config();
 
 const app = express();
-
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:5002";
 
 // CORS middleware - must come before routes
 const corsOptions = {
@@ -17,32 +14,42 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Auth Service Reverse Proxy (forwards /api/auth and /auth to Auth Service :5002)
-const authProxy = createProxyMiddleware({
-  target: AUTH_SERVICE_URL,
-  changeOrigin: true,
-  on: {
-    proxyReq: fixRequestBody,
-    error: (err, req, res) => {
-      console.error("[Gateway Proxy] Error forwarding to Auth Service:", err.message);
-      res.status(503).json({
-        message: "Auth service is temporarily unavailable. Please try again later.",
-      });
-    },
-  },
-});
-
-app.use("/api/auth", authProxy);
-app.use("/auth", authProxy);
-
+// Parse JSON request bodies
 app.use(express.json());
+
+// If an external AUTH_SERVICE_URL is explicitly set in env, proxy to it.
+// Otherwise, handle authentication directly with built-in auth routes.
+if (process.env.AUTH_SERVICE_URL) {
+  const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
+  const authProxy = createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL,
+    changeOrigin: true,
+    on: {
+      proxyReq: fixRequestBody,
+      error: (err, req, res) => {
+        console.error("[Gateway Proxy] Error forwarding to Auth Service:", err.message);
+        res.status(503).json({
+          message: "Auth service is temporarily unavailable. Please try again later.",
+        });
+      },
+    },
+  });
+
+  app.use("/api/auth", authProxy);
+  app.use("/auth", authProxy);
+} else {
+  const authRoutes = require("./routes/authRoutes");
+  app.use("/api/auth", authRoutes);
+  app.use("/auth", authRoutes);
+}
 
 // Render keep-alive health check
 app.get("/health", (req, res) => {
   res.status(200).json({
-    service: "main-server-gateway",
+    service: "main-server",
     status: "alive",
-    authServiceUrl: AUTH_SERVICE_URL,
+    authMode: process.env.AUTH_SERVICE_URL ? "proxy" : "internal",
+    authServiceUrl: process.env.AUTH_SERVICE_URL || "internal",
     time: new Date(),
   });
 });
